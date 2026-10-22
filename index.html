@@ -103,6 +103,32 @@ header.top p { margin: 5px 0 0; font-weight: 700; font-size: 13px; letter-spacin
 .cell[aria-pressed="true"] .box { border-color: var(--silver); background: var(--silver); }
 .cell[aria-pressed="true"] .box::after { content: ""; width: 9px; height: 5px; border-left: 2.5px solid var(--ink); border-bottom: 2.5px solid var(--ink); transform: translateY(-1px) rotate(-45deg); }
 
+.pickrow .lab { align-self: center; }
+.pick { position: relative; display: grid; place-items: center; align-content: center; gap: 2px; min-height: 52px; border-left: 1px solid var(--line); padding: 5px 2px; cursor: pointer; text-align: center; min-width: 0; }
+.pick:hover { background: rgba(221,225,229,.06); }
+.pick:focus-within { outline: 2px solid var(--acc, var(--silver)); outline-offset: -2px; }
+.pick b { font-weight: 700; font-size: 19px; line-height: 1; color: var(--acc, var(--silver)); text-shadow: 0 0 10px rgba(var(--acc-rgb, 221,225,229), .45); font-variant-numeric: tabular-nums; }
+.pick .pv { max-width: 100%; padding: 0 3px; font-size: 13px; font-weight: 600; color: var(--steel); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: none; letter-spacing: .02em; }
+.pick .pv .sm { display: none; }
+.pick .pv i { font-style: normal; color: var(--faint); font-size: 10px; margin-left: 3px; }
+.pick select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 16px; border: 0; }
+.pick.unset b { color: var(--faint); text-shadow: none; font-size: 16px; }
+.pick.unset .pv { color: var(--chalk); }
+.pick.dq b { color: #ff7466; text-shadow: none; font-size: 16px; letter-spacing: .06em; }
+.pick.dq { background: rgba(201,74,61,.12); }
+.card.capture .pick .pv i { display: none; }
+.tierall { display: grid; place-items: center; align-content: center; gap: 1px; border: 0; border-left: 1px solid var(--line); background: transparent; padding: 4px 2px; cursor: pointer; font: inherit; color: inherit; min-width: 0; }
+.tierall:hover { background: rgba(221,225,229,.06); }
+.tierall b { font-weight: 700; font-size: 17px; color: var(--acc, var(--silver)); letter-spacing: .04em; }
+.tierall small { font-size: 11px; font-weight: 600; color: var(--faint); letter-spacing: .04em; }
+.tierall.ok b { color: #8fd19a; font-size: 13px; letter-spacing: .12em; }
+.tierall.none b { color: var(--faint); font-size: 15px; }
+.card.capture .tierall small { display: none; }
+.shsec { cursor: pointer; }
+.shsec[aria-expanded="true"]::before { transform: rotate(90deg); }
+.card.capture .shsec::before { transform: none; }
+.desc-toggle { margin-top: 8px; }
+@container (max-width: 560px) { .pick .pv { font-size: 12px; letter-spacing: 0; } .pick .pv .lg { display: none; } .pick .pv .sm { display: inline; } .pick .pv i { display: none; } .pick b { font-size: 17px; } .tierall small { display: none; } }
 .mx-total { border-top: 3px solid var(--silver); background: #101214; }
 .mx-total .lab { padding: 11px 20px; font-family: var(--display); font-size: 17px; letter-spacing: .06em; text-transform: uppercase; color: var(--silver); align-self: center; }
 .mx-total .lab small { display: block; font-family: var(--body); font-size: 12px; font-weight: 600; letter-spacing: .06em; color: var(--faint); text-transform: none; }
@@ -294,7 +320,8 @@ input:focus { border-color: rgba(var(--acc-rgb), .7); box-shadow: 0 0 0 3px rgba
     </div>
   </header>
 
-  <p class="hint" id="hint">Mark each mission in its front's column; tap again to clear. Strategy boxes left empty score zero. <b>The three missions are averaged</b>, and a disqualification on any front fails the assessment.</p>
+  <p class="hint" id="hint"></p>
+  <button class="btn desc-toggle" id="desc-toggle" type="button" aria-pressed="false" hidden>Show requirement details</button>
 
   <div class="layout">
     <div>
@@ -382,24 +409,24 @@ const CLS = {
     dq: "Failing the primary objective is an automatic disqualification.", retest: true,
     sections: [
       { title: "Main criteria", items: [
-        { key: "obj", label: "Primary objective", max: 10, note: "Fail disqualifies", opts: [["Success", 10], ["Fail", "DQ"]] },
-        { key: "time", label: "Time", max: 10, note: "−1 per minute past 10:00", opts: over(10, 1, 10, "+10 min or more", 0) },
+        { key: "obj", label: "Primary objective", def: 0, max: 10, note: "Fail disqualifies", opts: [["Success", 10], ["Fail", "DQ"]] },
+        { key: "time", label: "Time", def: 0, max: 10, note: "−1 per minute past 10:00", opts: over(10, 1, 10, "+10 min or more", 0) },
         { key: "strat", label: "Battle strategy", max: 5, note: "1 point each", checks: STRAT("Leadership"), each: 1 } ] },
       { title: "Secondary criteria", items: [
-        { key: "ext", label: "Extraction", max: 4, note: "−1 per diver not extracted", opts: [["All 4 extracted", 4], ["3 of 4", 3], ["2 of 4", 2], ["1 of 4", 1], ["None", 0]] },
-        { key: "death", label: "Death count", max: 8, note: "−1 per death", opts: [["No deaths", 8], ["1 death", 7], ["2 deaths", 6], ["3 deaths", 5], ["4 deaths", 4], ["5 deaths", 3], ["6 deaths", 2], ["7 deaths", 1], ["8 or more", 0]] },
+        { key: "ext", label: "Extraction", def: 0, max: 4, note: "−1 per diver not extracted", opts: [["All 4 extracted", 4], ["3 of 4", 3], ["2 of 4", 2], ["1 of 4", 1], ["None", 0]] },
+        { key: "death", label: "Death count", def: 0, max: 8, note: "−1 per death", opts: [["No deaths", 8], ["1 death", 7], ["2 deaths", 6], ["3 deaths", 5], ["4 deaths", 4], ["5 deaths", 3], ["6 deaths", 2], ["7 deaths", 1], ["8 or more", 0]] },
         { key: "coh", label: "Squad cohesion", max: 3, opts: [["Exceptional", 3], ["Proficient", 2], ["Acceptable", 1], ["Needs improvement", 0]] } ] } ] },
   gamma: { id: "gamma", name: "Gamma", full: "Vanguard Gamma Class", tag: "Initial classification", max: 80, pass: 60, clock: "15:00",
     req: ["T10", "3 Vanguard Acolytes", "3 missions, 1 per front", "Clock: 15:00"],
     dq: "Failing full map completion is an automatic disqualification.", retest: true,
     sections: [
       { title: "Main criteria", items: [
-        { key: "map", label: "Full map completion", max: 20, note: "Fail disqualifies", opts: [["Success", 20], ["Fail", "DQ"]] },
-        { key: "time", label: "Time", max: 20, note: "−2 per minute past 15:00", opts: over(10, 2, 20, "+10 min or more", 0) },
+        { key: "map", label: "Full map completion", def: 0, max: 20, note: "Fail disqualifies", opts: [["Success", 20], ["Fail", "DQ"]] },
+        { key: "time", label: "Time", def: 0, max: 20, note: "−2 per minute past 15:00", opts: over(10, 2, 20, "+10 min or more", 0) },
         { key: "strat", label: "Battle strategy", max: 10, note: "2 points each", checks: STRAT("Collaboration"), each: 2 } ] },
       { title: "Secondary criteria", items: [
-        { key: "ext", label: "Extraction", max: 8, note: "−2 per diver not extracted", opts: [["All 4 extracted", 8], ["3 of 4", 6], ["2 of 4", 4], ["1 of 4", 2], ["None", 0]] },
-        { key: "death", label: "Death count", max: 16, note: "−2 per death, 8 allowed", opts: [["No deaths", 16], ["1 death", 14], ["2 deaths", 12], ["3 deaths", 10], ["4 deaths", 8], ["5 deaths", 6], ["6 deaths", 4], ["7 deaths", 2], ["8 or more", 0]] },
+        { key: "ext", label: "Extraction", def: 0, max: 8, note: "−2 per diver not extracted", opts: [["All 4 extracted", 8], ["3 of 4", 6], ["2 of 4", 4], ["1 of 4", 2], ["None", 0]] },
+        { key: "death", label: "Death count", def: 0, max: 16, note: "−2 per death, 8 allowed", opts: [["No deaths", 16], ["1 death", 14], ["2 deaths", 12], ["3 deaths", 10], ["4 deaths", 8], ["5 deaths", 6], ["6 deaths", 4], ["7 deaths", 2], ["8 or more", 0]] },
         { key: "coh", label: "Squad cohesion", max: 6, opts: [["Exceptional", 6], ["Proficient", 4], ["Acceptable", 2], ["Needs improvement", 0]] } ] } ] },
   special: { id: "special", name: "Special", full: "Special Classification", tag: "Delta · Beta · Alpha", max: 65, pass: 45, clock: "15:00",
     req: ["T10", "3 Vanguard Acolytes", "3 missions, 1 per front", "Clock: 15:00", "Preset loadout"],
@@ -410,12 +437,12 @@ const CLS = {
       { id: "alpha", name: "Alpha", title: "Raiju Juggernaut" } ],
     sections: [
       { title: "Main criteria", items: [
-        { key: "map", label: "Full map completion", max: 20, note: "Fail disqualifies", opts: [["Success", 20], ["Fail", "DQ"]] },
-        { key: "time", label: "Time", max: 15, note: "−1 per minute past 15:00", opts: over(6, 1, 15, "More than +5 min", "DQ") },
+        { key: "map", label: "Full map completion", def: 0, max: 20, note: "Fail disqualifies", opts: [["Success", 20], ["Fail", "DQ"]] },
+        { key: "time", label: "Time", def: 0, max: 15, note: "−1 per minute past 15:00", opts: over(6, 1, 15, "More than +5 min", "DQ") },
         { key: "strat", label: "Battle strategy", max: 10, note: "2 points each", checks: STRAT("Collaboration"), each: 2 } ] },
       { title: "Secondary criteria", items: [
-        { key: "ext", label: "Extraction", max: 8, note: "−2 per diver not extracted", opts: [["All 4 extracted", 8], ["3 of 4", 6], ["2 of 4", 4], ["1 of 4", 2], ["None", 0]] },
-        { key: "death", label: "Death count", max: 8, note: "−2 per death, 4 allowed", opts: [["No deaths", 8], ["1 death", 6], ["2 deaths", 4], ["3 deaths", 2], ["4 deaths", 0], ["5 or more", "DQ"]] },
+        { key: "ext", label: "Extraction", def: 0, max: 8, note: "−2 per diver not extracted", opts: [["All 4 extracted", 8], ["3 of 4", 6], ["2 of 4", 4], ["1 of 4", 2], ["None", 0]] },
+        { key: "death", label: "Death count", def: 0, max: 8, note: "−2 per death, 4 allowed", opts: [["No deaths", 8], ["1 death", 6], ["2 deaths", 4], ["3 deaths", 2], ["4 deaths", 0], ["5 or more", "DQ"]] },
         { key: "coh", label: "Squad cohesion", max: 4, opts: [["Exceptional", 4], ["Proficient", 3], ["Acceptable", 2], ["Needs improvement", 1]] } ] } ] }
 };
 const LOADOUTS = {
@@ -511,9 +538,10 @@ const esc = (t) => String(t).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt
 
 function itemScore(it, s, f) {
   if (it.checks) { const a = (s.checks[it.key] || [])[f] || []; return { v: a.filter(Boolean).length * it.each, set: true }; }
-  const i = (s.picks[it.key] || [])[f];
-  if (i == null) return { v: null, set: false };
-  return { v: it.opts[i][1], set: true };
+  let i = (s.picks[it.key] || [])[f];
+  if (i == null && it.def != null) i = it.def;
+  if (i == null || !it.opts[i]) return { v: null, set: false, i: null };
+  return { v: it.opts[i][1], set: true, i };
 }
 function frontResult(c, s, f) {
   let total = 0, dq = false; const missing = [];
@@ -540,6 +568,12 @@ function evaluate(c = cls(), s = sc()) {
   return { fr, dq, avg, missing, res };
 }
 
+const SHORT = { "All 4 extracted": "4 of 4", "None": "0 of 4", "No deaths": "0 deaths", "8 or more": "8+ deaths", "5 or more": "5+ deaths", "+10 min or more": "+10 min", "More than +5 min": "Over +5", "Needs improvement": "Needs work" };
+const shortLab = (it, lab) => (it.key === "ext" && lab === "None") ? "0 of 4" : (SHORT[lab] || lab);
+const PHONE = { "Success": "Met", "Fail": "Fail", "On time": "On time", "Exceptional": "Exc", "Proficient": "Prof", "Acceptable": "Acc", "Needs improvement": "Low", "+10 min or more": "+10m", "More than +5 min": ">+5m" };
+const phoneLab = (it, lab) => { if (PHONE[lab]) return PHONE[lab]; const m = lab.match(/^\+(\d+) min$/); if (m) return `+${m[1]}m`;
+  if (it.key === "ext") return lab === "All 4 extracted" ? "4/4" : lab === "None" ? "0/4" : lab.replace(" of ", "/");
+  if (it.key === "death") { const d = lab.match(/\d+/); return lab.startsWith("No") ? "0" : d ? d[0] + (/more/.test(lab) ? "+" : "") : lab; } return lab; };
 function renderCard(ev) {
   const c = cls(), s = sc();
   const subName = c.subs && s.sub ? c.subs.find(x => x.id === s.sub) : null;
@@ -555,23 +589,23 @@ function renderCard(ev) {
   for (const sec of c.sections) {
     h += `<div class="sec" style="background-image:url(${BRUSH})">${sec.title}</div>`;
     for (const it of sec.items) {
+      if (!it.checks) {
+        h += `<div class="mx-row item pickrow"><div class="lab"><b>${it.label}</b><span class="max">${it.max} PTS</span>${it.note ? `<small>${it.note}</small>` : ""}</div>`;
+        for (let f = 0; f < 3; f++) { const r = itemScore(it, s, f);
+          const opts = (it.def == null ? `<option value="" ${r.set ? "" : "selected"}>Choose…</option>` : "") + it.opts.map(([lab, pts], i) => `<option value="${i}" ${r.i === i ? "selected" : ""}>${lab} · ${pts}${pts === "DQ" ? "" : " pts"}</option>`).join("");
+          h += `<label class="pick${!r.set ? " unset" : r.v === "DQ" ? " dq" : ""}"><span class="pv">${r.set ? `<span class="lg">${shortLab(it, it.opts[r.i][0])}</span><span class="sm">${phoneLab(it, it.opts[r.i][0])}</span>` : "Choose"}<i>▾</i></span><b>${!r.set ? "—" : r.v}</b><select data-k="${it.key}" data-f="${f}" aria-label="${FRONTS[f].name}, ${it.label}">${opts}</select></label>`; }
+        h += `</div>`;
+        continue;
+      }
       h += `<div class="mx-row item"><div class="lab"><b>${it.label}</b><span class="max">${it.max} PTS</span>${it.note ? `<small>${it.note}</small>` : ""}</div>`;
       for (let f = 0; f < 3; f++) { const r = itemScore(it, s, f); h += `<div class="iscore${!r.set ? " none" : r.v === "DQ" ? " dq" : ""}">${!r.set ? "—" : r.v}</div>`; }
       h += `</div>`;
-      if (it.checks) {
+      {
         it.checks.forEach((lab, i) => {
           const on = [0, 1, 2].some(f => ((s.checks[it.key] || [])[f] || [])[i]);
           h += `<div class="mx-row opt${on ? " on" : ""}"><div class="lab"><span>${lab}</span><span class="pts">+${it.each}</span></div>`;
           for (let f = 0; f < 3; f++) { const p = !!((s.checks[it.key] || [])[f] || [])[i];
             h += `<button type="button" class="cell" data-k="${it.key}" data-f="${f}" data-i="${i}" data-t="chk" aria-pressed="${p}" aria-label="${FRONTS[f].name}, ${it.label}: ${lab}"><span class="box"></span></button>`; }
-          h += `</div>`;
-        });
-      } else {
-        it.opts.forEach(([lab, pts], i) => {
-          const on = [0, 1, 2].some(f => (s.picks[it.key] || [])[f] === i);
-          h += `<div class="mx-row opt${on ? " on" : ""}"><div class="lab"><span>${lab}</span><span class="pts${pts === "DQ" ? " dq" : ""}">${pts}</span></div>`;
-          for (let f = 0; f < 3; f++) { const p = (s.picks[it.key] || [])[f] === i;
-            h += `<button type="button" class="cell${pts === "DQ" ? " dqpick" : ""}" data-k="${it.key}" data-f="${f}" data-i="${i}" data-t="pick" aria-pressed="${p}" aria-label="${FRONTS[f].name}, ${it.label}: ${lab}, ${pts}${pts === "DQ" ? "" : " points"}"><span class="dot"></span></button>`; }
           h += `</div>`;
         });
       }
@@ -631,6 +665,7 @@ function shStatus(x) {
   if (!x.started) return "Not started";
   return x.t.oneFront ? "In progress" : `${done.length} of 3 fronts`;
 }
+function shOpen(t, i, ev) { const o = (state.shOpen || {})[t.id]; return o != null ? o : (!ev.allTiers && i === ev.highest); }
 function renderShadow(ev) {
   const s = state.score.shadow;
   $("c-cls").innerHTML = `Progression card <span>· Tiers I–IV</span>`;
@@ -642,20 +677,22 @@ function renderShadow(ev) {
   let h = frontHead("Requirement");
   for (const x of ev.tiers) {
     const t = x.t;
-    h += `<div class="sec shsec" style="background-image:url(${BRUSH})"><span>Tier ${t.num} · ${t.name} [${t.code}]</span><span class="st${x.cleared ? " ok" : ""}">${shStatus(x).toUpperCase()}</span></div>`;
-    h += `<div class="mx-row item"><div class="lab"><b>${t.greek}</b><span class="max">${t.map}% MAP</span><small>${t.info}</small></div>${x.per.map((n, f) => `<div class="iscore${x.frontDone[f] ? " ok" : n === 0 ? " none" : ""}">${x.frontDone[f] ? "DONE" : `${n}/${x.rows.length}`}</div>`).join("")}</div>`;
+    const ti = ev.tiers.indexOf(x), open = shOpen(t, ti, ev);
+    h += `<div class="sec shsec" role="button" tabindex="0" data-tier="${t.id}" aria-expanded="${open}" style="background-image:url(${BRUSH})"><span>Tier ${t.num} · ${t.name} [${t.code}]</span><span class="st${x.cleared ? " ok" : ""}">${shStatus(x).toUpperCase()}</span></div>`;
+    h += `<div class="mx-row item"><div class="lab"><b>${t.greek}</b><span class="max">${t.map}% MAP · D${t.diff}</span>${state.showDesc ? `<small>${t.info}</small>` : ""}</div>${x.per.map((n, f) => `<button type="button" class="tierall${x.frontDone[f] ? " ok" : n === 0 ? " none" : ""}" data-t="all" data-tier="${t.id}" data-f="${f}" aria-label="${FRONTS[f].name}, Tier ${t.num}: ${x.frontDone[f] ? "clear every requirement" : "tick every requirement"}"><b>${x.frontDone[f] ? "DONE" : `${n}/${x.rows.length}`}</b><small>${x.frontDone[f] ? "tap to clear" : "tap: all met"}</small></button>`).join("")}</div>`;
+    if (!open) continue;
     let blitzShown = false;
     x.rows.forEach((r, i) => {
-      if (r.kind === "blitz" && !blitzShown) { blitzShown = true; h += `<div class="shhead">${t.blitz.title}<small>${t.blitz.note}</small></div>`; }
+      if (r.kind === "blitz" && !blitzShown) { blitzShown = true; h += `<div class="shhead">${t.blitz.title}${state.showDesc ? `<small>${t.blitz.note}</small>` : ""}</div>`; }
       const key = `${t.id}.${i}`, arr = s.checks[key] || [];
-      h += `<div class="mx-row srow ${r.kind}${arr.some(Boolean) ? " on" : ""}"><div class="lab"><b>${r.label}</b>${r.desc ? `<small>${r.desc}</small>` : ""}</div>`;
+      h += `<div class="mx-row srow ${r.kind}${arr.some(Boolean) ? " on" : ""}"><div class="lab"><b>${r.label}</b>${r.desc && state.showDesc ? `<small>${r.desc}</small>` : ""}</div>`;
       for (let f = 0; f < 3; f++) h += `<button type="button" class="cell" data-t="sh" data-k="${key}" data-f="${f}" aria-pressed="${!!arr[f]}" aria-label="${FRONTS[f].name}, Tier ${t.num}: ${r.label}"><span class="box"></span></button>`;
       h += `</div>`;
     });
   }
   h += `<div class="sec shsec" style="background-image:url(${BRUSH})"><span>Final</span><span class="st${ev.complete ? " ok" : ""}">${ev.complete ? "COMPLETE" : "OPEN"}</span></div>`;
-  h += `<div class="finrow srow${ev.allTiers ? " on" : ""}"><div class="lab"><b>Completion of all requisites for Tier I – Tier IV</b><small>Ticks itself when every tier is cleared.</small></div><div class="fincell auto${ev.allTiers ? " on" : ""}"><span class="box"></span><span>${ev.allTiers ? "Met" : "Not yet"}</span></div></div>`;
-  h += `<div class="finrow srow${s.finalExt ? " on" : ""}"><div class="lab"><b>Full extraction for the entirety of each tier</b><small>The Olympian confirms this.</small></div><button type="button" class="cell fincell" data-t="fin" aria-pressed="${!!s.finalExt}" aria-label="Full extraction for the entirety of each tier"><span class="box"></span><span>Confirmed</span></button></div>`;
+  h += `<div class="finrow srow${ev.allTiers ? " on" : ""}"><div class="lab"><b>All requisites, Tiers I–IV</b>${state.showDesc ? "<small>Ticks itself when every tier is cleared.</small>" : ""}</div><div class="fincell auto${ev.allTiers ? " on" : ""}"><span class="box"></span><span>${ev.allTiers ? "Met" : "Not yet"}</span></div></div>`;
+  h += `<div class="finrow srow${s.finalExt ? " on" : ""}"><div class="lab"><b>Full extraction, every tier</b>${state.showDesc ? "<small>The Olympian confirms this.</small>" : ""}</div><button type="button" class="cell fincell" data-t="fin" aria-pressed="${!!s.finalExt}" aria-label="Full extraction for the entirety of each tier"><span class="box"></span><span>Confirmed</span></button></div>`;
   $("matrix").innerHTML = h;
   const top = ev.highest ? SH.tiers[ev.highest - 1] : null;
   $("c-final").innerHTML = `<div class="avgwrap"><div class="k">Highest tier cleared</div><div class="avg">${top ? top.num : "—"}<small>/ IV</small></div></div>
@@ -681,8 +718,10 @@ function setTrack(shadow) {
   $("c-track").textContent = shadow ? "Shadow Initiative" : "Mercury Assessment";
   $("c-ladder").hidden = !shadow;
   $("hint").innerHTML = shadow
-    ? "Tick each requirement in the column for the front it was met on; tap again to clear. <b>Tier I clears on one front, Tiers II–IV need all three.</b> The tier ladder and the Final section update by themselves."
-    : "Mark each mission in its front's column; tap again to clear. Strategy boxes left empty score zero. <b>The three missions are averaged</b>, and a disqualification on any front fails the assessment.";
+    ? "Tap a tier's score under a front to tick <b>every requirement on that front at once</b>, or tick rows one by one. Tap a tier's bar to open or close it. Tier I clears on one front; Tiers II–IV need all three."
+    : "Everything starts at full marks: objective met, on time, all 4 extracted, no deaths. <b>Only change what went wrong</b>, pick squad cohesion for each front, and tick the strategy boxes earned.";
+  $("desc-toggle").hidden = !shadow;
+  $("desc-toggle").setAttribute("aria-pressed", String(!!state.showDesc)); $("desc-toggle").textContent = state.showDesc ? "Hide requirement details" : "Show requirement details";
 }
 function shadowSummary() {
   const ev = evaluateShadow(), top = ev.highest ? SH.tiers[ev.highest - 1] : null;
@@ -714,7 +753,7 @@ async function renderPNG() {
   try { await document.fonts.ready; } catch (e) {}
   const card = $("card");
   const canvas = await window.html2canvas(card, { scale: 2, backgroundColor: "#0b0c0d", logging: false, windowWidth: 1300,
-    onclone: (doc) => { const el = doc.getElementById("card"); el.classList.add("capture"); } });
+    onclone: (doc) => { const el = doc.getElementById("card"); el.classList.add("capture"); el.querySelectorAll("select").forEach(x => x.remove()); } });
   return await new Promise(ok => canvas.toBlob(ok, "image/png"));
 }
 
@@ -782,6 +821,14 @@ $("copy").addEventListener("click", async () => {
   catch (e) { const ta = document.createElement("textarea"); ta.value = t; ta.setAttribute("aria-label", "Result text"); ta.rows = 5; ta.style.width = "100%"; $("status").replaceChildren(ta); ta.focus(); ta.select(); }
 });
 $("matrix").addEventListener("click", (e) => {
+  const tb = e.target.closest(".shsec[data-tier]");
+  if (tb && state.cls === "shadow") { const ev = evaluateShadow(), t = SH.tiers.find(x => x.id === tb.dataset.tier), i = SH.tiers.indexOf(t);
+    state.shOpen = state.shOpen || {}; state.shOpen[t.id] = !shOpen(t, i, ev); refresh(); return; }
+  const ab = e.target.closest(".tierall");
+  if (ab) { const sh = state.score.shadow, t = SH.tiers.find(x => x.id === ab.dataset.tier), f = +ab.dataset.f, n = shRows(t).length;
+    const all = Array.from({ length: n }, (_, i) => (sh.checks[`${t.id}.${i}`] || [])[f]).every(Boolean);
+    for (let i = 0; i < n; i++) { const a = sh.checks[`${t.id}.${i}`] = sh.checks[`${t.id}.${i}`] || [false, false, false]; a[f] = !all; }
+    refresh(); return; }
   const b = e.target.closest(".cell"); if (!b) return;
   if (state.cls === "shadow") { const sh = state.score.shadow;
     if (b.dataset.t === "fin") sh.finalExt = !sh.finalExt;
@@ -795,6 +842,14 @@ $("matrix").addEventListener("click", (e) => {
   }
   refresh();
 });
+$("matrix").addEventListener("change", (e) => {
+  const sel = e.target.closest("select"); if (!sel || state.cls === "shadow") return;
+  const s = sc(), k = sel.dataset.k, f = +sel.dataset.f;
+  s.picks[k] = s.picks[k] || [null, null, null]; s.picks[k][f] = sel.value === "" ? null : +sel.value;
+  refresh();
+});
+$("matrix").addEventListener("keydown", (e) => { const tb = e.target.closest(".shsec[data-tier]"); if (tb && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); tb.click(); } });
+$("desc-toggle").addEventListener("click", () => { state.showDesc = !state.showDesc; refresh(); });
 $("c-sub").addEventListener("click", (e) => { const b = e.target.closest(".subchip"); if (!b) return; const s = sc(); s.sub = s.sub === b.dataset.sub ? "" : b.dataset.sub; refresh(); });
 document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => { state.cls = t.dataset.cls; $("preview").hidden = true; setStatus(""); refresh(); }));
 $("clear").addEventListener("click", () => { $("confirm").hidden = false; });
