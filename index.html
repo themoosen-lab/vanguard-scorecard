@@ -337,7 +337,7 @@ input:focus { border-color: rgba(var(--acc-rgb), .7); box-shadow: 0 0 0 3px rgba
         </div>
         <div class="c-req" id="c-req"></div>
         <div class="c-info">
-          <div><span>Applicant</span><output id="o-applicant"></output></div>
+          <div><span id="o-applicant-lab">Applicant</span><output id="o-applicant"></output></div>
           <div><span>Date</span><output id="o-date"></output></div>
           <div><span>Acolytes</span><output id="o-acolytes"></output></div>
           <div><span>Olympian observer</span><output id="o-observer"></output></div>
@@ -356,6 +356,8 @@ input:focus { border-color: rgba(var(--acc-rgb), .7); box-shadow: 0 0 0 3px rgba
         <div class="fields">
           <label class="wide" for="f-applicant">Applicant<input id="f-applicant" autocomplete="off" placeholder="Diver being assessed"></label>
           <label class="wide" for="f-arank">Applicant's current rank<input id="f-arank" autocomplete="off" placeholder="Rank held right now"></label>
+          <div class="crew wide" id="crew-more"></div>
+          <button type="button" class="btn crew-add" id="crew-add">+ Add another applicant</button>
           <label class="wide" for="f-acolytes">Acolytes<input id="f-acolytes" autocomplete="off" placeholder="The three Vanguard Acolytes"></label>
           <label for="f-observer">Olympian observer<input id="f-observer" autocomplete="off" placeholder="Callsign"></label>
           <label for="f-date">Date<input id="f-date" type="date"></label>
@@ -392,6 +394,17 @@ input:focus { border-color: rgba(var(--acc-rgb), .7); box-shadow: 0 0 0 3px rgba
 
 <div class="mbar" aria-label="Score so far"><div class="mnum" id="m-total">0<small>/40</small></div><span class="chip open" id="m-chip">In progress</span><button class="btn primary" id="m-save" type="button">Save image</button></div>
 
+<style id="crew-style">
+#o-applicant { white-space: normal; overflow: visible; overflow-wrap: anywhere; line-height: 1.3; }
+.crew { grid-column: 1 / -1; display: grid; gap: 10px; }
+.crew:empty, .crew [hidden], .crew-add[hidden] { display: none !important; }
+.crew-row { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 44px; gap: 10px; align-items: end; }
+.crew-row.seats { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, .95fr) 44px; }
+.crew-x { height: 42px; width: 44px; border: 1px solid rgba(160,170,180,.45); background: transparent; color: inherit; font-size: 20px; line-height: 1; cursor: pointer; opacity: .8; }
+.crew-x:hover { opacity: 1; }
+.crew-add { grid-column: 1 / -1; justify-self: start; }
+@media (max-width: 560px) { .crew-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px; gap: 8px; } .crew-row.seats { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .crew-row.seats .crew-x { grid-column: 2; justify-self: end; } }
+</style>
 <script>
 const BRUSH = "data:image/jpeg;base64,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";
 const FRONTS = [
@@ -580,7 +593,7 @@ function renderCard(ev) {
   const subName = c.subs && s.sub ? c.subs.find(x => x.id === s.sub) : null;
   $("c-cls").innerHTML = subName ? `Vanguard ${subName.name} Class <span>· ${subName.title}</span>` : `${c.full} <span>· ${c.tag}</span>`;
   $("c-req").innerHTML = c.req.map(r => `<span>${r}</span>`).join("") + `<span><b>Pass: ${c.pass} / ${c.max} average</b></span>`;
-  $("o-applicant").textContent = state.applicant; $("o-acolytes").textContent = state.acolytes; $("o-observer").textContent = state.observer;
+  $("o-applicant").textContent = appNames(); $("o-applicant-lab").textContent = appUsed().length > 1 ? "Applicants" : "Applicant"; $("o-acolytes").textContent = state.acolytes; $("o-observer").textContent = state.observer;
   $("o-date").textContent = state.date ? (([y, m, d]) => `${m}/${d}/${y}`)(state.date.split("-")) : "";
   const sub = $("c-sub");
   sub.hidden = !c.subs;
@@ -633,10 +646,19 @@ function renderSide(ev) {
     $("loadout-sum").textContent = `${x.name} preset loadout · ${x.title}`;
     $("loadout-list").innerHTML = LOADOUTS[s.sub].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join(""); }
 }
-function syncFields() { $("f-applicant").value = state.applicant; $("f-arank").value = state.arank || ""; $("f-acolytes").value = state.acolytes; $("f-observer").value = state.observer; $("f-date").value = state.date; }
-function infoLine() { return `Applicant: ${state.applicant || "—"} · Acolytes: ${state.acolytes || "—"} · Olympian: ${state.observer || "—"} · ${state.date ? (([y, m, d]) => `${m}/${d}/${y}`)(state.date.split("-")) : ""}`; }
+// ---- several applicants assessed together ----
+const moreList = () => (state.more = Array.isArray(state.more) ? state.more : []);
+const appAll = () => [{ name: state.applicant || "", rank: state.arank || "" }, ...moreList()];
+const appUsed = () => appAll().filter((p, i) => i === 0 || p.name.trim() || p.rank.trim());
+const appNames = () => appAll().map((p) => p.name.trim()).filter(Boolean).join(" · ");
+function renderCrew() {
+  $("crew-more").innerHTML = moreList().map((p, i) => `<div class="crew-row"><label>Applicant ${i + 2}<input data-ci="${i}" data-ck="name" value="${esc(p.name || "")}" autocomplete="off" placeholder="Callsign"></label><label>Current rank<input data-ci="${i}" data-ck="rank" value="${esc(p.rank || "")}" autocomplete="off" placeholder="Rank held right now"></label><button type="button" class="crew-x" data-cx="${i}" aria-label="Remove applicant ${i + 2}">×</button></div>`).join("");
+  $("crew-add").hidden = moreList().length >= 3;
+}
+function syncFields() { renderCrew(); $("f-applicant").value = state.applicant; $("f-arank").value = state.arank || ""; $("f-acolytes").value = state.acolytes; $("f-observer").value = state.observer; $("f-date").value = state.date; }
+function infoLine() { return `${appUsed().length > 1 ? "Applicants" : "Applicant"}: ${appNames() || "—"} · Acolytes: ${state.acolytes || "—"} · Olympian: ${state.observer || "—"} · ${state.date ? (([y, m, d]) => `${m}/${d}/${y}`)(state.date.split("-")) : ""}`; }
 function renderInfo() {
-  $("o-applicant").textContent = state.applicant; $("o-acolytes").textContent = state.acolytes; $("o-observer").textContent = state.observer;
+  $("o-applicant").textContent = appNames(); $("o-applicant-lab").textContent = appUsed().length > 1 ? "Applicants" : "Applicant"; $("o-acolytes").textContent = state.acolytes; $("o-observer").textContent = state.observer;
   $("o-date").textContent = state.date ? (([y, m, d]) => `${m}/${d}/${y}`)(state.date.split("-")) : "";
 }
 function frontHead(label) {
@@ -743,7 +765,7 @@ function summaryText() {
   const subName = c.subs && s.sub ? c.subs.find(x => x.id === s.sub) : null;
   return [
     `**SD ODST Ghost Vanguard · Mercury Assessment · ${subName ? `${subName.name} Class (${subName.title})` : `${c.name} Class`}**`,
-    `Applicant: ${state.applicant || "—"} · Acolytes: ${state.acolytes || "—"} · Olympian: ${state.observer || "—"} · ${state.date ? (([y, m, d]) => `${m}/${d}/${y}`)(state.date.split("-")) : ""}`,
+    `${appUsed().length > 1 ? "Applicants" : "Applicant"}: ${appNames() || "—"} · Acolytes: ${state.acolytes || "—"} · Olympian: ${state.observer || "—"} · ${state.date ? (([y, m, d]) => `${m}/${d}/${y}`)(state.date.split("-")) : ""}`,
     ev.fr.map((x, f) => `${FRONTS[f].name} ${x.dq ? "DQ" : `${x.total}/${c.max}`}`).join(" | "),
     `**Average: ${ev.dq ? "DQ" : `${fmt(ev.avg)}/${c.max}`} · ${ev.res.txt.toUpperCase()}** (pass mark ${c.pass})`
   ].join("\n");
@@ -763,7 +785,7 @@ let downloads = null;
 function setStatus(msg, err) { const el = $("status"); el.textContent = msg; el.className = "status" + (err ? " err" : ""); }
 const slug = (t) => (t || "").replace(/[^A-Za-z0-9-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40);
 const fileName = () => {
-  if (state.cls === "shadow") { const ev = evaluateShadow(); return `Vanguard_Shadow_Tier${ev.highest ? ROMAN[ev.highest - 1] : "0"}_${slug(state.applicant) || "applicant"}_${state.date || "undated"}.png`; } const c = cls(), s = sc(); const n = c.subs && s.sub ? c.subs.find(x => x.id === s.sub).name : c.name; return `Vanguard_Mercury_${n}_${slug(state.applicant) || "applicant"}_${state.date || "undated"}.png`; };
+  if (state.cls === "shadow") { const ev = evaluateShadow(); return `Vanguard_Shadow_Tier${ev.highest ? ROMAN[ev.highest - 1] : "0"}_${slug(state.applicant) || "applicant"}${appUsed().length > 1 ? "_plus" + (appUsed().length - 1) : ""}_${state.date || "undated"}.png`; } const c = cls(), s = sc(); const n = c.subs && s.sub ? c.subs.find(x => x.id === s.sub).name : c.name; return `Vanguard_Mercury_${n}_${slug(state.applicant) || "applicant"}${appUsed().length > 1 ? "_plus" + (appUsed().length - 1) : ""}_${state.date || "undated"}.png`; };
 // Phones that can share files. iPhone saves through the share sheet ("Save Image"); Android's share sheet has no plain
 // "save to gallery", so Android downloads the image instead and keeps Share as an optional button under the preview.
 const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -860,10 +882,13 @@ document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () =>
 $("clear").addEventListener("click", () => { $("confirm").hidden = false; });
 $("clear-no").addEventListener("click", () => { $("confirm").hidden = true; });
 $("clear-yes").addEventListener("click", () => { state.score[state.cls] = state.cls === "shadow" ? blankShadow() : blankScore(); $("confirm").hidden = true; $("preview").hidden = true; setStatus("Card cleared."); refresh(); });
+$("crew-more").addEventListener("input", (e) => { const t = e.target; if (t.dataset.ci == null) return; moreList()[+t.dataset.ci][t.dataset.ck] = t.value; refresh(); });
+$("crew-more").addEventListener("click", (e) => { const b = e.target.closest("[data-cx]"); if (!b) return; moreList().splice(+b.dataset.cx, 1); renderCrew(); refresh(); });
+$("crew-add").addEventListener("click", () => { if (moreList().length >= 3) return; moreList().push({ name: "", rank: "" }); renderCrew(); refresh(); const ins = document.querySelectorAll('#crew-more input[data-ck="name"]'); if (ins.length) ins[ins.length - 1].focus(); });
 [["f-applicant", "applicant"], ["f-arank", "arank"], ["f-acolytes", "acolytes"], ["f-observer", "observer"], ["f-date", "date"]].forEach(([id, k]) => $(id).addEventListener("input", () => { state[k] = $(id).value; refresh(); }));
 syncFields(); refresh();
 window.LOGI_CARD = { anchor: "save", saveIds: ["save"], info: () => {
-  const base = { program: "SD ODST Ghost Vanguard", people: [{ label: "Applicant", callsign: state.applicant, rank: state.arank }], date: state.date, officerLabel: "Olympian observer", officer: state.observer };
+  const base = { program: "SD ODST Ghost Vanguard", people: appUsed().map((p, i, a) => ({ label: a.length > 1 ? `Applicant ${i + 1}` : "Applicant", callsign: p.name, rank: p.rank })), date: state.date, officerLabel: "Olympian observer", officer: state.observer };
   if (state.cls === "shadow") { const ev = evaluateShadow(); if (!ev.highest) return { eligible: false }; const t = SH.tiers[ev.highest - 1];
     return Object.assign(base, { eligible: true, trial: ev.complete ? "Shadow Initiative · complete, Tiers I–IV" : `Shadow Initiative · Tier ${t.num} ${t.greek} · ${t.name} cleared` }); }
   const c = cls(), s = sc(), ev = evaluate(), sub = c.subs && s.sub ? c.subs.find((x) => x.id === s.sub) : null;
